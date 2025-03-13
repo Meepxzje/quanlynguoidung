@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  
+  frontend:
+    build:
+      context: ./TMT-Fe
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./TMT-Fe:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    command: ["npm", "run", "dev", "--", "--host"]
+ 
+
+
+  backend:
+    build:
+      context: ./TMT_Be
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./TMT_Be:/var/www
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=tmt_be
+      - DB_USERNAME=root
+      - DB_PASSWORD=
+    depends_on:
+      - mysql
+    command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+    networks:
+      - mynetwork
+
+  mysql:
+    image: mysql:8
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ""  
+      MYSQL_DATABASE: tmt_be
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes" 
+    ports:
+      - "3307:3306"  # Đổi cổng MySQL trên máy host thành 3307
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - mynetwork
+
+
+  phpmyadmin:
+    image: phpmyadmin
+    restart: always
+    environment:
+      PMA_HOST: mysql  # Trùng với tên container MySQL
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: ""
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    ports:
+      - "8080:80"  # PhpMyAdmin chạy trên cổng 8080
+    depends_on:
+      - mysql
+    networks:
+      - mynetwork
+
+networks:
+  mynetwork:
+    driver: bridge
+
+volumes:
+  mysql_data:
